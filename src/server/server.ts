@@ -4,7 +4,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { WebSocket, WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer, RawData } from 'ws';
 import { createServer as createHttpServer, IncomingMessage, Server as HttpServer } from 'http';
 import { log } from '../utils/logger/logger';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
@@ -21,7 +21,7 @@ class WebSocketServerTransport implements Transport {
     this.ws = ws;
     this.sessionId = Math.random().toString(36).substring(2, 15);
     
-    ws.on('message', (data) => {
+    ws.on('message', (data: RawData) => {
       try {
         const message = JSON.parse(data.toString()) as JSONRPCMessage;
         this.onmessage?.(message);
@@ -35,7 +35,7 @@ class WebSocketServerTransport implements Transport {
       this.onclose?.();
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
       this.onerror?.(error);
     });
   }
@@ -54,7 +54,7 @@ class WebSocketServerTransport implements Transport {
     }
     
     return new Promise((resolve, reject) => {
-      this.ws!.send(JSON.stringify(message), (error) => {
+      this.ws!.send(JSON.stringify(message), (error?: Error) => {
         if (error) {
           reject(error);
         } else {
@@ -120,7 +120,7 @@ export async function setupServer(config: ServerConfig): Promise<{
     const wss = new WebSocketServer({ server: httpServer });
     
     // Handle WebSocket connections
-    wss.on('connection', async (ws) => {
+    wss.on('connection', async (ws: WebSocket) => {
       log.info('New WebSocket connection');
       const transport = new WebSocketServerTransport(ws);
       await server.connect(transport);
